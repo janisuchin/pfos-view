@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<title>Private dashboard</title>
+<style>
+:root { --bg: #f6f6f4; --surface: #ffffff; --ink: #1b1b1a; --ink-2: #55554f; --muted: #8a8a82; --line: #e2e2dc;
+        --accent: #2f6fd6; --accent-ink: #ffffff; --bad: #c9372c; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #111110; --surface: #1c1c1a; --ink: #ecece6;
+        --ink-2: #b9b9b1; --muted: #85857d; --line: #33332f; --accent: #5b93ef; --accent-ink: #0b1220; --bad: #ef6b60; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+             font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.gate { min-height: 100%; display: grid; place-items: center; padding: 24px 16px; }
+.card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 26px 22px; }
+h1 { font-size: 19px; margin: 0 0 4px; font-weight: 650; }
+p { margin: 0 0 16px; color: var(--ink-2); font-size: 14px; }
+label.f { display: block; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
+input[type=password], input[type=text] { width: 100%; font: inherit; font-size: 17px; padding: 11px 12px; border-radius: 9px;
+             border: 1px solid var(--line); background: var(--bg); color: var(--ink); letter-spacing: .04em; }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row { display: flex; align-items: center; gap: 8px; margin: 12px 0 18px; font-size: 14px; color: var(--ink-2); }
+button.go { width: 100%; font: inherit; font-weight: 600; padding: 11px; border: 0; border-radius: 9px;
+            background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+button.go[disabled] { opacity: .6; cursor: progress; }
+.msg { min-height: 20px; margin-top: 12px; font-size: 13.5px; color: var(--bad); }
+.small { font-size: 12px; color: var(--muted); margin-top: 14px; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: var(--bg); }
+#lock { position: fixed; left: 10px; bottom: 10px; z-index: 5; display: none; font: 12px system-ui, sans-serif; padding: 5px 10px;
+        border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); opacity: .85; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <form class="card" id="form" autocomplete="on">
+    <h1>Private dashboard</h1>
+    <p id="intro">Encrypted. Enter the passphrase to open it on this device.</p>
+    <input type="text" name="username" autocomplete="username" value="family" hidden>
+    <label class="f" for="pw">Passphrase</label>
+    <input id="pw" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+    <div class="row"><input id="remember" type="checkbox"><label for="remember">Remember on this device</label></div>
+    <button class="go" id="go" type="submit">Open</button>
+    <div class="msg" id="msg" role="alert"></div>
+    <div class="small">Nothing is readable without the passphrase; it never leaves this device.</div>
+  </form>
+</div>
+<iframe id="view" title="Dashboard"></iframe>
+<button id="lock" type="button" title="Forget the passphrase on this device and close">🔒 Lock</button>
+<script>
+(() => {
+  "use strict";
+  const VIEW = "family", DATA = "d.json", STORE = "pfos.key." + VIEW, CHECK_MS = 5 * 60 * 1000;
+  const $ = (id) => document.getElementById(id);
+  const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  let key = null, keySalt = null, version = null, blobUrl = null;
+  // "Remember on this device" keeps a NON-EXTRACTABLE key in IndexedDB: the browser can use it to decrypt, but no
+  // script can read its bytes out. Lock (in any tab of this view) forgets it everywhere; the other view
+  // (owner / family) shares the site's storage but keeps its own key and its own lock channel.
+  const chan = ("BroadcastChannel" in window) ? new BroadcastChannel("pfos-lock." + VIEW) : null;
+  const legacy = ("BroadcastChannel" in window) ? new BroadcastChannel("pfos-lock") : null;  // tabs still on the previous page
+  function idb(mode, fn) {
+    return new Promise((resolve) => {
+      let req;
+      try { req = indexedDB.open("pfos", 1); } catch (e) { resolve(null); return; }
+      req.onupgradeneeded = () => req.result.createObjectStore("keys");
+      req.onerror = () => resolve(null);
+      req.onsuccess = () => {
+        try {
+          const tx = req.result.transaction("keys", mode), st = tx.objectStore("keys"), r = fn(st);
+          tx.oncomplete = () => resolve(r && "result" in r ? r.result : null);
+          tx.onerror = tx.onabort = () => resolve(null);
+        } catch (e) { resolve(null); }
+      };
+    });
+  }
+  const remembered = () => idb("readonly", (st) => st.get(STORE));
+  const remember = (salt, k) => idb("readwrite", (st) => st.put({ salt, k }, STORE));
+  const forget = () => idb("readwrite", (st) => st.delete(STORE));
+
+  async function fetchPayload() {
+    const r = await fetch(DATA + "?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("The dashboard data could not be loaded (" + r.status + ").");
+    return r.json();
+  }
+  async function deriveKey(pass, p) {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(p.salt), iterations: p.iter, hash: "SHA-256" }, base,
+                                   { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  }
+  async function open(p, k) {
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(p.iv) }, k, b64(p.ct));
+    const html = await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    $("view").onload = placeLock;
+    $("view").src = url;
+    if (blobUrl) setTimeout((old) => URL.revokeObjectURL(old), 10000, blobUrl);
+    blobUrl = url; version = p.iv;
+    $("gate").style.display = "none"; $("view").style.display = "block";
+  }
+  function dropLegacy() {           // raw keys kept by an earlier version of this page, for either view
+    try { ["owner", "family"].forEach((v) => localStorage.removeItem("pfos.key." + v)); } catch (e) {}
+  }
+  async function lock() {
+    await forget();
+    dropLegacy();
+    if (chan) chan.postMessage("lock");
+    if (legacy) legacy.postMessage("lock");
+    location.reload();
+  }
+  async function forgetIfStale() {  // forget the remembered key only if it is the one that stopped working - another
+    const saved = await remembered();           // tab may already have saved the new passphrase's key
+    if (saved && saved.salt === keySalt) await forget();
+  }
+  if (chan) chan.onmessage = () => location.reload();          // locked in another tab
+  if (legacy) legacy.onmessage = () => { if (key) location.reload(); };   // locked in a tab still on the previous page
+  function placeLock() {            // the Lock button sits with the dashboard's own controls; floating only as a fallback
+    try {
+      const d = $("view").contentDocument, c = d && d.querySelector(".controls");
+      if (!c) throw new Error("no controls");
+      const add = () => {
+        if (d.getElementById("pfosLock")) return;
+        const b = d.createElement("button");
+        b.id = "pfosLock"; b.type = "button"; b.textContent = "🔒 Lock"; b.className = "linkbtn";
+        b.title = "Forget the passphrase on this device and close"; b.onclick = lock;
+        c.appendChild(b);
+      };
+      add();
+      new MutationObserver(add).observe(c, { childList: true });
+      $("lock").style.display = "none";
+    } catch (e) { $("lock").style.display = "block"; }
+  }
+  function off(text) { $("intro").textContent = text; $("form").querySelectorAll("input,button").forEach((e) => e.disabled = true); }
+
+  async function start() {
+    if (!window.crypto || !crypto.subtle || typeof DecompressionStream === "undefined") {
+      off("This browser is too old to open the encrypted dashboard. Please update it (Chrome, Safari 16.4+, Edge or Firefox).");
+      return;
+    }
+    dropLegacy();                                               // never keep a raw key from an earlier version
+    let p;
+    try { p = await fetchPayload(); } catch (e) { $("msg").textContent = e.message; return; }
+    if (p.off) { await forget(); off("Sharing is switched off at the moment."); return; }
+    const saved = await remembered();
+    if (saved && saved.salt === p.salt && saved.k) {
+      try { key = saved.k; keySalt = p.salt; await open(p, key); return; }
+      catch (e) { key = keySalt = null; }                       // passphrase changed since: ask again
+    }
+    if (saved) await forget();
+    $("pw").focus();
+  }
+
+  $("form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    $("msg").textContent = ""; $("go").disabled = true; $("go").textContent = "Opening…";
+    try {
+      const p = await fetchPayload();
+      if (p.off) { off("Sharing is switched off at the moment."); return; }
+      const k = await deriveKey($("pw").value.trim().toLowerCase(), p);
+      await open(p, k);
+      key = k; keySalt = p.salt;
+      if ($("remember").checked) await remember(p.salt, k);
+      $("pw").value = "";
+    } catch (e) {
+      $("msg").textContent = (e && e.name === "OperationError") ? "That passphrase does not open this dashboard." : (e.message || String(e));
+    } finally { $("go").disabled = false; $("go").textContent = "Open"; }
+  });
+
+  $("lock").addEventListener("click", lock);
+
+  async function refresh() {          // live: pick up the copy the PC published after its last refresh
+    if (!key || document.hidden) return;
+    try {
+      const p = await fetchPayload();
+      if (p.off) { await forget(); location.reload(); return; }
+      if (p.salt !== keySalt) { await forgetIfStale(); location.reload(); return; }   // the passphrase was replaced
+      if (p.iv !== version) await open(p, key);
+    } catch (e) {
+      if (e && e.name === "OperationError") { await forgetIfStale(); location.reload(); }
+    }
+  }
+  setInterval(refresh, CHECK_MS);
+  document.addEventListener("visibilitychange", refresh);
+  start();
+})();
+</script>
+</body>
+</html>
