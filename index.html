@@ -1,0 +1,973 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-tl0fxLRyB3sTo5QzqdHo+Iiy7HcBAH5O/eAkif93JPc=' 'sha256-/OIx7gnDCutrftPrGcmVqjqKiWJuCnH5WatkZxAOD0s='; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://home-pc.tail2f55f2.ts.net; frame-src blob:; child-src blob:; worker-src 'self'; manifest-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111110" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Command Center">
+<meta name="application-name" content="Command Center">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<title>Command Center</title>
+<style id="antiClickjack">body { display: none !important; }</style>
+<style>
+:root { --bg: #f6f6f4; --surface: #ffffff; --ink: #1b1b1a; --ink-2: #55554f; --muted: #8a8a82; --line: #e2e2dc;
+        --accent: #2f6fd6; --accent-ink: #ffffff; --bad: #c9372c; --good: #1d8a4e; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #111110; --surface: #1c1c1a; --ink: #ecece6;
+        --ink-2: #b9b9b1; --muted: #85857d; --line: #33332f; --accent: #5b93ef; --accent-ink: #0b1220; --bad: #ef6b60; --good: #4cc185; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+             font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+[hidden] { display: none !important; }
+.gate { min-height: 100%; display: grid; place-items: center;
+        padding: calc(24px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px)); }
+.card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 26px 22px; }
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.brand img { width: 44px; height: 44px; border-radius: 10px; flex: 0 0 auto; }
+h1 { font-size: 19px; margin: 0; font-weight: 650; }
+p { margin: 0 0 16px; color: var(--ink-2); font-size: 14px; }
+label.f { display: block; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
+input[type=password], input[type=text] { width: 100%; font: inherit; font-size: 17px; padding: 11px 12px; border-radius: 9px; min-height: 46px;
+             border: 1px solid var(--line); background: var(--bg); color: var(--ink); letter-spacing: .04em; }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.go { width: 100%; font: inherit; font-weight: 600; min-height: 46px; padding: 11px; border: 0; border-radius: 9px; margin-top: 14px;
+            background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+button.go[disabled] { opacity: .6; cursor: progress; }
+button.link { display: block; width: 100%; min-height: 44px; margin-top: 8px; border: 0; background: none; font: inherit; font-size: 14px;
+              color: var(--accent); cursor: pointer; }
+button.ghost { font: inherit; font-weight: 600; min-height: 46px; padding: 10px 14px; border-radius: 9px; border: 1px solid var(--line);
+               background: var(--surface); color: var(--ink); cursor: pointer; }
+.msg { min-height: 20px; margin-top: 12px; font-size: 13.5px; color: var(--bad); }
+.note { font-size: 13.5px; color: var(--ink-2); margin-top: 8px; }
+.note:empty { display: none; }
+.small { font-size: 12px; color: var(--muted); margin-top: 14px; }
+#view { position: fixed; inset: 0; width: 1px; min-width: 100%; height: 100%; border: 0; display: none; background: var(--bg); }   /* (1px + min-width: iOS never widens the frame to its content) */
+html.open #view { display: block; }
+html.open #gate { display: none; }
+#lock { position: fixed; left: 10px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 5; display: none; font: 12px system-ui, sans-serif;
+        padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); opacity: .85; cursor: pointer; }
+html:not(.open) #lock { display: none !important; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; justify-content: center;
+         padding: 12px calc(12px + env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) calc(12px + env(safe-area-inset-left, 0px)); }
+.sheet-card { width: 100%; max-width: 440px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px 14px;
+              box-shadow: 0 -6px 30px rgba(0, 0, 0, .18); }
+.sheet-card b { font-size: 16px; }
+.sheet-card p { margin: 6px 0 12px; }
+.sheet-row { display: flex; gap: 10px; }
+.sheet-row .go { margin-top: 0; flex: 1 1 auto; }
+html:not(.open) .sheet { display: none; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 25;
+         width: min(440px, calc(100% - 24px)); background: var(--ink); color: var(--bg); border-radius: 12px; padding: 12px 14px; font-size: 14px;
+         box-shadow: 0 6px 24px rgba(0, 0, 0, .25); }
+/* upload from this phone (M-2, the owner's app) */
+.up .sheet-card { max-height: calc(100vh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow: auto; }
+.up-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.up-head button.link { width: auto; margin: 0; min-height: 40px; }
+.up-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+.up-row > button { flex: 1 1 130px; }
+.up select { width: 100%; font: inherit; font-size: 16px; min-height: 46px; padding: 8px 10px; border-radius: 9px; border: 1px solid var(--line);
+             background: var(--bg); color: var(--ink); margin-bottom: 6px; }
+.up input[type=text] { margin-bottom: 10px; }
+.up-list { list-style: none; margin: 6px 0 4px; padding: 0; }
+.up-list li { padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.up-list .n { font-weight: 600; overflow-wrap: anywhere; }
+.up-list .s { color: var(--ink-2); font-size: 13px; margin-top: 2px; }
+.up-list .s.ok { color: var(--good); }
+.up-list .s.bad { color: var(--bad); }
+.up-bar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 6px; overflow: hidden; }
+.up-bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.up-box { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 10px 0; font-size: 14px; color: var(--ink-2); }
+.vh { position: fixed; left: -9999px; top: 0; width: 1px; height: 1px; opacity: 0; }
+a.go { display: block; text-align: center; text-decoration: none; font-weight: 600; min-height: 46px; padding: 11px; border-radius: 9px;
+       margin-top: 10px; background: var(--accent); color: var(--accent-ink); }
+#sa { position: fixed; top: 0; left: 0; width: 0; height: 0; visibility: hidden; pointer-events: none;
+      padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <form class="card" id="form" autocomplete="on">
+    <div class="brand"><img src="icons/icon-192.png" alt="" width="44" height="44"><h1>Command Center</h1></div>
+    <p id="intro">Encrypted. Unlock to open it on this device.</p>
+    <div id="pkBox" hidden>
+      <button class="go" id="pkGo" type="button">Unlock with Face ID / fingerprint</button>
+      <button class="link" id="usePw" type="button">Use the passphrase instead</button>
+    </div>
+    <div id="pwBox">
+      <input type="text" name="username" autocomplete="username" value="owner" hidden>
+      <label class="f" for="pw">Passphrase</label>
+      <input id="pw" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+      <button class="go" id="go" type="submit">Open</button>
+      <button class="link" id="usePk" type="button" hidden>Use Face ID / fingerprint</button>
+      <button class="link" id="pkLater" type="button" hidden>Turn on Face ID / fingerprint</button>
+    </div>
+    <div class="msg" id="msg" role="alert"></div>
+    <div class="note" id="note" role="status"></div>
+    <div class="small">Nothing is readable without the passphrase or this device's Face ID / fingerprint; neither leaves this device.</div>
+    <button class="link" id="pkRemove" type="button" hidden>Remove Face ID / fingerprint on this device</button>
+  </form>
+</div>
+<iframe id="view" title="Dashboard"></iframe>
+<button id="lock" type="button" title="Close the dashboard on this device">🔒 Lock</button>
+<div class="sheet" id="offer" role="dialog" aria-labelledby="offerT" hidden>
+  <div class="sheet-card">
+    <b id="offerT">Unlock with Face ID / fingerprint?</b>
+    <p id="offerP">Next time this device opens the dashboard with a look or a touch. The passphrase stays the fallback; the key is kept locked on this device only.</p>
+    <div class="sheet-row"><button class="go" id="offerYes" type="button">Turn on</button><button class="ghost" id="offerNo" type="button">Not now</button></div>
+  </div>
+</div>
+<div class="sheet up" id="up" role="dialog" aria-labelledby="upT" hidden>
+  <div class="sheet-card">
+    <div class="up-head"><b id="upT">Upload a statement</b><button class="link" id="upX" type="button">Close ✕</button></div>
+    <div id="upBody"></div>
+  </div>
+</div>
+<input type="file" id="upPick" class="vh" multiple accept=".pdf,.csv,.xls,.xlsx,.jpg,.jpeg,.png,.heic,application/pdf,text/csv,image/*" tabindex="-1" aria-hidden="true">
+<input type="file" id="upCam" class="vh" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true">
+<div class="toast" id="toast" role="status" hidden></div>
+<div id="sa" aria-hidden="true"></div>
+<script>
+(() => {
+  "use strict";
+  // Clickjacking: this page never runs inside another site's frame (GitHub Pages cannot send frame-ancestors). Until this
+  // check has passed, the body is not shown at all (the antiClickjack style).
+  if (window.top !== window.self) { try { window.top.location.replace(window.location.href); } catch (e) { /* stays blank */ } return; }
+  document.getElementById("antiClickjack").remove();
+
+  const VIEW = "owner", APP = "sha256-/OIx7gnDCutrftPrGcmVqjqKiWJuCnH5WatkZxAOD0s=", TITLE = document.title, DATA = "d.json", CHECK_MS = 5 * 60 * 1000;
+  const $ = (id) => document.getElementById(id);
+  const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  const toB64 = (buf) => { const a = new Uint8Array(buf); let s = ""; for (let i = 0; i < a.length; i++) s += String.fromCharCode(a[i]); return btoa(s); };
+  const b64url = (s) => s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const rand = (n) => crypto.getRandomValues(new Uint8Array(n));
+  const enc = (s) => new TextEncoder().encode(s);
+  const WHERE = new URL("./", location.href).href;            // this view's own address (a stored record must match it)
+  // Auto-lock (owner decision 2026-10-08): phones and tablets - any touch screen (an iPad with a trackpad too), or the app
+  // runs from the home screen - lock the moment the page is hidden; anything else (a desktop browser) after IDLE_MS
+  // without a touch, click or key, and with Lock. Locked = the decrypted page and its key are gone and, once a page was
+  // open, this unlock page is loaded afresh (nothing it ran stays behind); the next view needs Face ID / fingerprint or
+  // the passphrase again.
+  const TOUCH = matchMedia("(pointer: coarse)").matches || matchMedia("(any-pointer: coarse)").matches || navigator.maxTouchPoints > 0
+    || matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  let IDLE_MS = 5 * 60 * 1000;
+  try { const t = +localStorage.getItem("pfos.idleSeconds." + VIEW); if (t > 0 && t * 1000 < IDLE_MS) IDLE_MS = t * 1000; } catch (e) { /* default */ }
+
+  // in memory only, while open: the content key (non-extractable), the salt it belongs to, the copy shown
+  let key = null, keySalt = null, version = null, blobUrl = null, payload = null, epoch = 0, lastActive = Date.now();
+  let pendingRaw = null;   // the key's bytes, only between a passphrase unlock and the Face ID offer (then wiped)
+  let mode = "pw", usePw = false, pkBusy = false, lastAuto = 0, dirty = false, pkFailed = false;
+  // Lock in any tab of this view locks the other tabs of the SAME view; the other view (owner / family) keeps its own
+  // keys, passkey and channel
+  const chan = ("BroadcastChannel" in window) ? new BroadcastChannel("pfos-lock." + VIEW) : null;
+
+  /* ---------------------------------------------------------------- storage (IndexedDB) */
+  function idb(name, store, mode_, fn) {
+    return new Promise((resolve) => {
+      let req;
+      try { req = indexedDB.open(name, 1); } catch (e) { resolve(null); return; }
+      req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(store)) req.result.createObjectStore(store); };
+      req.onerror = () => resolve(null);
+      req.onsuccess = () => {
+        const db = req.result;
+        try {
+          const tx = db.transaction(store, mode_), r = fn(tx.objectStore(store));
+          tx.oncomplete = () => { db.close(); resolve(r && "result" in r ? r.result : null); };
+          tx.onerror = tx.onabort = () => { db.close(); resolve(null); };
+        } catch (e) { db.close(); resolve(null); }
+      };
+    });
+  }
+  // Face ID / fingerprint: ONLY the content key wrapped (AES-GCM) by a key derived from the passkey's PRF output, and the
+  // passkey's id - never the key itself
+  const pkDel = () => idb("pfos-app", "passkeys", "readwrite", (st) => st.delete(VIEW));
+  const pkPut = (rec) => idb("pfos-app", "passkeys", "readwrite", (st) => st.put({ ...rec, where: WHERE }, VIEW));
+  // a record made for another address is never used (and dropped) - cheap hardening only: a page served from the same
+  // origin (another GitHub Pages site of the account) can read the store itself (see the self-check "pages_sites")
+  async function pkGet() {
+    const rec = await idb("pfos-app", "passkeys", "readonly", (st) => st.get(VIEW));
+    if (rec && rec.where !== WHERE) { await pkDel(); return null; }
+    return rec;
+  }
+  // the previous page's "Remember on this device" (keys that opened the dashboard with no check at all): forgotten -
+  // both views' (the whole old database); says so when this view had one
+  async function dropRemembered() {
+    try { ["owner", "family"].forEach((v) => localStorage.removeItem("pfos.key." + v)); } catch (e) { /* none */ }
+    try { if (indexedDB.databases && !(await indexedDB.databases()).some((d) => d.name === "pfos")) return false; } catch (e) { /* look */ }
+    const had = !!(await idb("pfos", "keys", "readonly", (st) => st.get("pfos.key." + VIEW)));
+    try { indexedDB.deleteDatabase("pfos"); } catch (e) { /* gone with the site data */ }
+    return had;
+  }
+
+  /* ---------------------------------------------------------------- messages */
+  const msg = (t) => { $("msg").textContent = t || ""; };
+  const note = (t) => { $("note").textContent = t || ""; };
+  let toastT = null;
+  function toast(t, ms = 7000) { const e = $("toast"); e.textContent = t; e.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { e.hidden = true; }, ms); }
+  function off(text) { $("intro").textContent = text; $("form").querySelectorAll("input,button").forEach((e) => { e.disabled = true; }); }
+  const errText = (e) => e && e.name === "TypeError" && /fetch|network|load/i.test(e.message || "")
+    ? "No connection, and this device has no saved copy yet - connect to the internet once." : (e && e.message) || String(e);
+
+  /* ---------------------------------------------------------------- the encrypted copy */
+  async function fetchPayload() {
+    const r = await fetch(DATA + "?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) throw new Error("The dashboard data could not be loaded (" + r.status + ").");
+    return r.json();
+  }
+  // the page's code changed on the PC since this unlock page was loaded: load the new one (its Content-Security-Policy
+  // names the new code) - once; if the new one is not out yet, say so
+  function stale(p) {
+    if (!p || !p.app || !APP || p.app === APP) return false;
+    let tried = null;
+    try { tried = sessionStorage.getItem("pfos.reload." + VIEW); } catch (e) { /* none */ }
+    if (tried !== p.app) { try { sessionStorage.setItem("pfos.reload." + VIEW, p.app); } catch (e) { /* once anyway */ } location.reload(); return true; }
+    msg("A new version of the dashboard is being published - try again in a few minutes.");
+    return true;
+  }
+  // PBKDF2-SHA256 of the passphrase, as on the PC: the content key's bytes (held only long enough to import them)
+  async function passBits(pass, p) {
+    const base = await crypto.subtle.importKey("raw", enc(pass), "PBKDF2", false, ["deriveBits"]);
+    return new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", salt: b64(p.salt), iterations: p.iter, hash: "SHA-256" }, base, 256));
+  }
+  const importKey = (raw) => crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["decrypt"]);   // non-extractable
+  function waitVisible(ms) {
+    if (!document.hidden) return Promise.resolve(true);
+    return new Promise((res) => {
+      const done = (v) => { document.removeEventListener("visibilitychange", vis); clearTimeout(t); res(v); };
+      const vis = () => { if (!document.hidden) done(true); };
+      const t = setTimeout(() => done(!document.hidden), ms);
+      document.addEventListener("visibilitychange", vis);
+    });
+  }
+  class Locked extends Error {}
+  // decrypt and show; `my` = the lock count when this unlock began (a lock meanwhile cancels it)
+  async function open(p, k, my = epoch) {
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(p.iv) }, k, b64(p.ct));
+    let html = await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    if (TOUCH && document.hidden && !(await waitVisible(2000))) throw new Locked();
+    if (my !== epoch) throw new Locked();
+    const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    html = null;
+    const f = $("view");
+    f.onload = () => frameReady(my);
+    f.src = url;
+    if (blobUrl) setTimeout((old) => URL.revokeObjectURL(old), 10000, blobUrl);
+    blobUrl = url; version = p.iv; key = k; keySalt = p.salt; payload = p; lastActive = Date.now(); dirty = true;
+    msg(""); note("");
+    document.documentElement.classList.add("open");
+  }
+
+  /* ---------------------------------------------------------------- lock */
+  function lock(why) {
+    epoch++;
+    document.documentElement.classList.remove("open");      // synchronously first: nothing readable stays on screen
+    const old = $("view");
+    if (old) { old.onload = null; old.remove(); }            // the decrypted page is gone with its frame
+    const f = document.createElement("iframe");
+    f.id = "view"; f.title = "Dashboard";
+    document.body.insertBefore(f, $("lock"));
+    if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
+    key = null; keySalt = null; version = null;
+    wipeRaw(); $("offer").hidden = true; $("toast").hidden = true;
+    upLock();
+    if (why) note(why);
+    gateMode();
+  }
+  // after a lock: this unlock page is loaded afresh once a dashboard was open in it, so nothing that ran beside the
+  // decrypted page (in this document's script realm) is still there for the next unlock; the message survives the reload
+  // (quiet: the fresh page does not ask for Face ID at once - after Lock, an idle lock or a passphrase change; after the
+  // phone left the app it asks as soon as the app is back in front)
+  function relaunch(text, quiet = true) {
+    if (!dirty) { if (text) note(text); return; }
+    try { if (text) sessionStorage.setItem("pfos.note." + VIEW, text); if (quiet) sessionStorage.setItem("pfos.quiet." + VIEW, "1"); } catch (e) { /* shown without it */ }
+    location.reload();
+  }
+  function lockAll() {
+    lock("Locked.");
+    if (chan) chan.postMessage("lock");
+    relaunch("Locked.");
+  }
+  if (chan) chan.onmessage = () => { if (key) { lock("Locked in another window."); relaunch("Locked in another window."); } };
+  function wipeRaw() { if (pendingRaw) { pendingRaw.fill(0); pendingRaw = null; } }
+  // phones / tablets: hidden = locked (the app switcher, another app, the screen off); desktop: after IDLE_MS without use
+  // (checked again on return), and with Lock. Every device: a page left behind (navigation, the back-forward cache, a
+  // frozen tab) is locked, and loaded afresh when it comes back
+  document.addEventListener("visibilitychange", () => {
+    // (choosing a file or taking a photo may hide the page on Android: it locks as always, but is not reloaded, so the
+    // files chosen are still there to send once it is unlocked again - upPick)
+    if (document.visibilityState === "hidden") { if (TOUCH) { const keep = !!picking; lock(); if (!keep) relaunch(null, false); } return; }
+    if (!TOUCH && key && Date.now() - lastActive >= IDLE_MS) { lock(idleText()); relaunch(idleText()); return; }
+    if (key) refresh();
+    else if (TOUCH) autoPk();
+  });
+  window.addEventListener("pagehide", () => lock());
+  window.addEventListener("pageshow", (e) => { if (e.persisted) { dirty = true; relaunch(null, false); } });
+  document.addEventListener("freeze", () => lock());
+  document.addEventListener("resume", () => { if (!picking) relaunch(null, false); });
+  const idleText = () => `Locked after ${Math.round(IDLE_MS / 60000) || "<1"} minute(s) without use.`;
+  const active = () => { lastActive = Date.now(); };
+  const ACT = ["pointerdown", "pointermove", "keydown", "wheel", "touchstart", "scroll"];
+  ACT.forEach((t) => document.addEventListener(t, active, { passive: true, capture: true }));
+  setInterval(() => { if (key && !TOUCH && Date.now() - lastActive >= IDLE_MS) { lock(idleText()); relaunch(idleText()); } },
+              Math.max(1000, Math.min(15000, IDLE_MS / 4)));
+
+  /* ---------------------------------------------------------------- the dashboard frame */
+  function frameReady(my) {
+    if (my !== epoch) return;
+    const f = $("view"), d = f.contentDocument;
+    try { ACT.forEach((t) => d.addEventListener(t, active, { passive: true, capture: true })); } catch (e) { /* idle from this page only */ }
+    passInsets();
+    placeLock();
+    if (UP_ON && !$("up").hidden) upDraw();          // (the accounts and the Telegram link come from the dashboard)
+  }
+  // the screen's safe areas (notch, home bar) for the dashboard: an iframe gets none of its own
+  function passInsets() {
+    try {
+      const d = $("view").contentDocument, cs = getComputedStyle($("sa"));
+      if (!d || !d.documentElement) return;
+      [["--sat", cs.paddingTop], ["--sar", cs.paddingRight], ["--sab", cs.paddingBottom], ["--sal", cs.paddingLeft]]
+        .forEach(([k, v]) => d.documentElement.style.setProperty(k, v || "0px"));
+    } catch (e) { /* the page's own defaults */ }
+  }
+  window.addEventListener("resize", passInsets);
+  function placeLock() {            // the Lock button sits with the dashboard's own controls; floating only as a fallback
+    try {
+      const d = $("view").contentDocument, c = d && d.querySelector(".controls");
+      if (!c) throw new Error("no controls");
+      const add = () => {
+        if (d.getElementById("pfosLock")) return;
+        const b = d.createElement("button");
+        b.id = "pfosLock"; b.type = "button"; b.textContent = "🔒 Lock"; b.className = "linkbtn";
+        b.title = "Close the dashboard on this device"; b.onclick = lockAll;
+        c.appendChild(b);
+      };
+      add();
+      new MutationObserver(add).observe(c, { childList: true });
+      $("lock").style.display = "none";
+    } catch (e) { $("lock").style.display = "block"; }
+  }
+  $("lock").addEventListener("click", lockAll);
+
+  /* ---------------------------------------------------------------- Face ID / fingerprint (a passkey with PRF) */
+  const PK_API = !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create);
+  async function platformAuth() {
+    try { return PK_API && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch (e) { return false; }
+  }
+  async function prfKnown() {       // true / false when the browser says whether it has PRF; null when it cannot say
+    try {
+      if (PublicKeyCredential.getClientCapabilities) {
+        const c = await PublicKeyCredential.getClientCapabilities();
+        if (c && "extension:prf" in c) return !!c["extension:prf"];
+      }
+    } catch (e) { /* unknown */ }
+    return null;
+  }
+  // the wrapping key: HKDF-SHA256 of the passkey's PRF output, bound to this view
+  async function wrapKey(prfOut, prfSalt) {
+    const base = await crypto.subtle.importKey("raw", prfOut, "HKDF", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: prfSalt, info: enc("pfos-view/" + VIEW + "/unlock-key/v1") }, base,
+                                   { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  }
+  const aad = (salt) => enc("pfos-view|" + VIEW + "|" + salt);    // the wrapped key belongs to this view and passphrase
+  async function prfGet(credId, prfSalt) {
+    const a = await navigator.credentials.get({ publicKey: { challenge: rand(32), rpId: location.hostname, timeout: 120000,
+      allowCredentials: [{ type: "public-key", id: credId, transports: ["internal"] }], userVerification: "required",
+      extensions: { prf: { eval: { first: prfSalt } } } } });
+    const r = ((a && a.getClientExtensionResults()) || {}).prf || {};
+    return r.results && r.results.first ? new Uint8Array(r.results.first) : null;
+  }
+  function signalGone(credB64) {    // newer browsers: lets the phone's password manager drop the passkey too
+    try {
+      if (PublicKeyCredential.signalUnknownCredential)
+        PublicKeyCredential.signalUnknownCredential({ rpId: location.hostname, credentialId: b64url(credB64) }).catch(() => {});
+    } catch (e) { /* stays listed in the password manager, unusable without this device's wrapped key */ }
+  }
+  async function forgetPk(text) {
+    const rec = await pkGet();
+    await pkDel();
+    if (rec && rec.cred) signalGone(rec.cred);
+    if (text) note(text);
+    await gateMode();
+  }
+  async function gateMode() {
+    const rec = await pkGet();
+    const has = !!(rec && payload && !payload.off && rec.keySalt === payload.salt);
+    mode = has && !usePw ? "pk" : "pw";
+    $("pkBox").hidden = mode !== "pk";
+    $("pwBox").hidden = mode !== "pw";
+    $("usePk").hidden = !(has && mode === "pw");
+    $("pkRemove").hidden = !rec;
+    let later = 0;
+    try { later = +localStorage.getItem("pfos.pk.later." + VIEW) || 0; } catch (e) { /* none */ }
+    $("pkLater").hidden = !(!rec && later && await platformAuth());
+  }
+  async function unlockPk(auto) {
+    if (pkBusy || key) return;
+    const my = epoch, t0 = Date.now();      // a lock (the page hidden, even briefly) while this runs cancels it
+    pkBusy = true; msg(""); $("pkGo").disabled = true;
+    try {
+      // the NEWEST copy first (the worker answers with the kept one offline): a replaced passphrase is found before any
+      // Face ID prompt, and a newer copy is the one that opens
+      let p;
+      try { p = payload = await fetchPayload(); } catch (e) { if (!payload) throw e; p = payload; }
+      if (my !== epoch) return;
+      if (p.off) { await forgetPk(); off("Sharing is switched off at the moment."); return; }
+      if (stale(p)) return;
+      const rec = await pkGet();
+      if (!rec) { await gateMode(); return; }
+      if (rec.keySalt !== p.salt) { await forgetPk("The passphrase was changed on the PC - type the new one, then turn on Face ID / fingerprint again."); return; }
+      let out;
+      try { out = await prfGet(b64(rec.cred), b64(rec.prfSalt)); }
+      catch (e) {
+        if (!auto || Date.now() - t0 > 1500) pkFailed = true;          // (asked and answered - not a refused auto-start)
+        if (!auto) msg(e && e.name === "NotAllowedError" ? "Not confirmed - try again, or use the passphrase." : "Face ID / fingerprint did not work (" + (e && e.name) + ") - use the passphrase.");
+        return;
+      }
+      if (my !== epoch) { if (out) out.fill(0); return; }
+      if (!out) { pkFailed = true; msg("This device did not hand over the unlock key - use the passphrase."); return; }
+      let raw;
+      try {
+        raw = new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(rec.iv), additionalData: aad(rec.keySalt) },
+                                                         await wrapKey(out, b64(rec.prfSalt)), b64(rec.wrapped)));
+      } catch (e) { await forgetPk("Face ID / fingerprint can no longer open this copy - type the passphrase, then turn it on again."); return; }
+      finally { out.fill(0); }
+      const k = await importKey(raw);
+      try { await open(p, k, my); await devUnlock(raw, rec.keySalt, my); upResume(); }
+      catch (e) {
+        if (e instanceof Locked) return;
+        if (e && e.name === "OperationError") await forgetPk("The passphrase was changed on the PC - type the new one, then turn on Face ID / fingerprint again.");
+        else msg((e && e.message) || String(e));
+      }
+      finally { raw.fill(0); }
+    } catch (e) { msg(errText(e)); }
+    finally { pkBusy = false; lastAuto = Date.now(); $("pkGo").disabled = false; }
+  }
+  function autoPk() {               // asks at once where the browser allows it without a tap (otherwise the button stays)
+    if (mode !== "pk" || key || pkBusy || document.hidden || Date.now() - lastAuto < 4000) return;
+    unlockPk(true);
+  }
+  // after a passphrase unlock: offer Face ID / fingerprint on this device (once per 30 days when declined) - and again at
+  // once when Face ID was tried and did not open it (e.g. the passkey was deleted in the phone's password manager)
+  async function offer(raw) {
+    const rec = await pkGet(), redo = pkFailed;
+    if (rec && rec.keySalt === keySalt && !redo) { raw.fill(0); return; }
+    if (rec && rec.keySalt !== keySalt) await forgetPk();
+    if (!(await platformAuth())) { raw.fill(0); return; }
+    let later = 0;
+    try { later = +localStorage.getItem("pfos.pk.later." + VIEW) || 0; } catch (e) { /* none */ }
+    if (!redo && Date.now() - later < 30 * 864e5) { raw.fill(0); return; }
+    if ((await prfKnown()) === false) {
+      raw.fill(0);
+      try { localStorage.setItem("pfos.pk.later." + VIEW, String(Date.now())); } catch (e) { /* says it again */ }
+      toast("Face ID / fingerprint unlock is not available in this browser (it lacks the WebAuthn PRF feature) - keep using the passphrase.", 9000);
+      return;
+    }
+    if (!key) { raw.fill(0); return; }   // locked meanwhile
+    pendingRaw = raw;
+    if (redo) setOffer("Set up Face ID / fingerprint again?", "It did not open the dashboard this time (the passkey may have been removed from this device). Set it up again - the passphrase stays the fallback.", "Set up again");
+    else setOffer("Unlock with Face ID / fingerprint?", "Next time this device opens the dashboard with a look or a touch. The passphrase stays the fallback; the key is kept locked on this device only.", "Turn on");
+    setTimeout(() => { if (pendingRaw === raw) { wipeRaw(); $("offer").hidden = true; } }, 3 * 60 * 1000);
+  }
+  let offerStep = null;
+  function setOffer(title, text, yes) { $("offerT").textContent = title; $("offerP").textContent = text; $("offerYes").textContent = yes; $("offerYes").disabled = false; $("offer").hidden = false; }
+  $("offerNo").addEventListener("click", () => {
+    wipeRaw(); offerStep = null; $("offer").hidden = true;
+    try { localStorage.setItem("pfos.pk.later." + VIEW, String(Date.now())); } catch (e) { /* asks again next time */ }
+  });
+  $("offerYes").addEventListener("click", () => { if (offerStep) offerStep(); else enable(); });
+  async function enable() {
+    if (!pendingRaw || !key) { $("offer").hidden = true; return; }
+    $("offerYes").disabled = true;
+    const prfSalt = rand(32);
+    let cred;
+    try {
+      cred = await navigator.credentials.create({ publicKey: {
+        rp: { id: location.hostname, name: TITLE }, user: { id: rand(16), name: TITLE, displayName: TITLE }, challenge: rand(32),
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+        authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "required", requireResidentKey: true, userVerification: "required" },
+        attestation: "none", timeout: 120000, extensions: { prf: { eval: { first: prfSalt } } } } });
+    } catch (e) {
+      $("offerYes").disabled = false;
+      $("offerP").textContent = e && e.name === "NotAllowedError" ? "Cancelled - nothing was saved. Try again, or choose Not now." : "Could not set it up (" + (e && e.name) + "). Nothing was saved.";
+      return;
+    }
+    const ext = ((cred && cred.getClientExtensionResults()) || {}).prf || {};
+    const first = ext.results && ext.results.first ? new Uint8Array(ext.results.first) : null;
+    if (first) { await keep(cred.rawId, prfSalt, first); return; }
+    if (!ext.enabled) {             // the passkey cannot derive a key: no way to keep the key locked by it
+      signalGone(toB64(cred.rawId)); wipeRaw();
+      try { localStorage.setItem("pfos.pk.later." + VIEW, String(Date.now())); } catch (e) { /* says it again */ }
+      setOffer("Not available on this device", "This browser cannot use Face ID / fingerprint to protect the key (it lacks the WebAuthn PRF feature). Keep using the passphrase - nothing was saved.", "OK");
+      offerStep = () => { offerStep = null; $("offer").hidden = true; };
+      return;
+    }
+    // some phones hand over the key only when the passkey is used: one more look or touch
+    setOffer("One more step", "Confirm once more with Face ID / fingerprint to finish.", "Confirm");
+    offerStep = async () => {
+      $("offerYes").disabled = true;
+      let out = null;
+      try { out = await prfGet(cred.rawId, prfSalt); } catch (e) { $("offerYes").disabled = false; $("offerP").textContent = "Not confirmed - try again, or choose Not now."; return; }
+      if (!out) { signalGone(toB64(cred.rawId)); wipeRaw(); setOffer("Not available on this device", "This device did not hand over a key for Face ID / fingerprint. Keep using the passphrase - nothing was saved.", "OK"); offerStep = () => { offerStep = null; $("offer").hidden = true; }; return; }
+      offerStep = null;
+      await keep(cred.rawId, prfSalt, out);
+    };
+  }
+  async function keep(credId, prfSalt, prfOut) {
+    const raw = pendingRaw;
+    if (!raw || !key) { prfOut.fill(0); $("offer").hidden = true; return; }
+    const iv = rand(12);
+    const wrapped = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: aad(keySalt) }, await wrapKey(prfOut, prfSalt), raw);
+    prfOut.fill(0); wipeRaw();
+    const before = await pkGet();                          // (a record replaced: its passkey is let go)
+    await pkPut({ v: 1, cred: toB64(credId), prfSalt: toB64(prfSalt), iv: toB64(iv), wrapped: toB64(wrapped), keySalt, at: new Date().toISOString() });
+    if (before && before.cred && before.cred !== toB64(credId)) signalGone(before.cred);
+    pkFailed = false;
+    try { localStorage.removeItem("pfos.pk.later." + VIEW); } catch (e) { /* none */ }
+    $("offer").hidden = true;
+    const ok = await pkGet();
+    toast(ok ? "Face ID / fingerprint is on for this device." : "Face ID / fingerprint could not be saved on this device (storage is blocked) - keep using the passphrase.");
+    await gateMode();
+  }
+  $("pkGo").addEventListener("click", () => unlockPk(false));
+  $("usePw").addEventListener("click", () => { usePw = true; gateMode().then(() => $("pw").focus()); });
+  $("usePk").addEventListener("click", () => { usePw = false; gateMode().then(() => unlockPk(false)); });
+  $("pkLater").addEventListener("click", () => {
+    try { localStorage.removeItem("pfos.pk.later." + VIEW); } catch (e) { /* none */ }
+    $("pkLater").hidden = true;
+    note("Type the passphrase - you will then be asked to turn on Face ID / fingerprint.");
+  });
+  $("pkRemove").addEventListener("click", async () => {
+    if (!confirm("Remove Face ID / fingerprint unlock on this device? The passphrase is needed next time.")) return;
+    usePw = false;
+    await forgetPk("Face ID / fingerprint removed on this device - the passphrase opens it.");
+  });
+
+  /* ---------------------------------------------------------------- the passphrase */
+  $("form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const my = epoch;
+    msg(""); $("go").disabled = true; $("go").textContent = "Opening…";
+    let raw = null;
+    try {
+      const p = payload = await fetchPayload();
+      if (p.off) { await forgetPk(); off("Sharing is switched off at the moment."); return; }
+      if (stale(p)) return;
+      raw = await passBits($("pw").value.trim().toLowerCase(), p);
+      await open(p, await importKey(raw), my);
+      $("pw").value = "";
+      await devUnlock(raw, p.salt, my);
+      const r = raw; raw = null;
+      offer(r);
+      upResume();
+    } catch (e) {
+      if (!(e instanceof Locked)) msg(e && e.name === "OperationError" ? "That passphrase does not open this dashboard." : errText(e));
+    } finally {
+      if (raw) raw.fill(0);
+      $("go").disabled = false; $("go").textContent = "Open";
+    }
+  });
+
+  /* ---------------------------------------------------------------- live: the copy the PC published after its last refresh */
+  async function refresh() {
+    if (!key || document.hidden) return;
+    try {
+      const p = await fetchPayload();
+      if (!key) return;
+      if (p.off) { payload = p; lock(); await forgetPk(); relaunch(); return; }
+      if (p.salt !== keySalt) {     // the passphrase was replaced: the key and Face ID of this device no longer open it
+        const why = "The passphrase was changed on the PC - type the new one.";
+        payload = p; lock(why); await forgetPk(why); relaunch(why); return;
+      }
+      if (stale(p)) return;
+      if (p.iv !== version) await open(p, key);
+    } catch (e) {
+      if (e && e.name === "OperationError") {
+        const why = "This copy no longer opens with the saved key - type the passphrase.";
+        lock(why); await forgetPk(why); relaunch(why);
+      }
+    }
+  }
+  setInterval(refresh, CHECK_MS);
+
+  /* ---------------------------------------------------------------- upload from this phone to the PC (M-2, owner only)
+     Over Tailscale: the PC's address (PHONE_HOST - set on the PC by phone-setup; this page's Content-Security-Policy lets
+     it connect there and nowhere else) answers only this page's origin, a Tailscale login set up on the PC and a paired
+     phone's device token. This phone keeps that token only WRAPPED (AES-GCM) by a key derived from the dashboard's
+     content key - the key Face ID's passkey (or the passphrase) unlocks - in IndexedDB, never in plain text or
+     localStorage, and in memory only while the app is unlocked: every lock forgets it. */
+  const PHONE_HOST = "home-pc.tail2f55f2.ts.net", UP_ON = VIEW === "owner";
+  const UP_TYPES = [".pdf", ".csv", ".xls", ".xlsx", ".jpg", ".jpeg", ".png", ".heic"], UP_MAX = 20 * 1048576, UP_POLL_MS = 2500, UP_FILES = 10;
+  let shareWant = 0, shareTimer = null;   // files the share sheet sent to this app (?share=N), waiting in the worker's memory
+  let dev = null, devRec = null, devKey = null, picking = 0, pickTimer = null, upBusy = false, upGen = 0, upMsg = "", upReach = null, upAcct = "";
+  const upFiles = [];               // chosen / sent: {file, name, size, state: ready|sending|sent|done|bad, pct, id, kind, text, note}
+  const upReq = new Set();          // requests in flight (a lock aborts them)
+  function el(tag, attrs, ...kids) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? "" : v);
+    }
+    kids.flat().forEach((c) => { if (c != null && c !== false) e.append(c); });          // text as text, never markup
+    return e;
+  }
+  const upMask = (t) => String(t || "").replace(/\d{6,}/g, (m) => "XXXX" + m.slice(-4));  // (the PC masks too)
+  const upSize = (n) => n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
+  const devGet = async () => {
+    const r = await idb("pfos-phone", "devices", "readonly", (st) => st.get(VIEW));
+    if (r && r.where !== WHERE) { await devDel(); return null; }
+    return r;
+  };
+  const devPut = (rec) => idb("pfos-phone", "devices", "readwrite", (st) => st.put({ ...rec, where: WHERE }, VIEW));
+  const devDel = () => idb("pfos-phone", "devices", "readwrite", (st) => st.delete(VIEW));
+  const devAad = (r) => enc("pfos-device|" + VIEW + "|" + r.host + "|" + r.device + "|" + r.keySalt);
+  async function devDerive(raw, salt) {
+    const base = await crypto.subtle.importKey("raw", raw, "HKDF", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: enc("pfos-device|" + salt), info: enc("pfos-view/" + VIEW + "/device-token/v1") },
+                                   base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  }
+  // after an unlock (Face ID or the passphrase), while the content key's bytes are at hand: the key that wraps the device
+  // token (non-extractable, in memory until the next lock) and the token itself
+  async function devUnlock(raw, salt, my) {
+    if (!UP_ON) return;
+    try {
+      const k = await devDerive(raw, salt);
+      if (my !== epoch) return;
+      devKey = k;
+      const rec = await devGet();
+      if (!rec || my !== epoch) return;
+      if (rec.keySalt !== salt || rec.host !== PHONE_HOST) {
+        await devDel();
+        toast(rec.host !== PHONE_HOST ? "Uploading: the PC's address changed - connect this phone to the PC again."
+          : "Uploading: the passphrase was changed - connect this phone to the PC again.", 9000);
+        return;
+      }
+      const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(rec.iv), additionalData: devAad(rec) }, k, b64(rec.wrapped));
+      if (my !== epoch) return;
+      dev = new TextDecoder().decode(plain); devRec = rec;
+    } catch (e) {
+      if (my === epoch) { await devDel(); toast("Uploading: connect this phone to the PC again.", 9000); }
+    }
+  }
+  // a lock: the token and its key are forgotten, requests in flight stopped, the sheet emptied; files chosen while the
+  // phone's picker hid the app (picking) stay to be sent after the next unlock
+  function upLock() {
+    dev = null; devRec = null; devKey = null; upGen++;
+    upReq.forEach((x) => { try { x.abort(); } catch (e) { /* gone */ } });
+    upReq.clear();
+    for (let i = upFiles.length - 1; i >= 0; i--) if (!picking || upFiles[i].state !== "ready") upFiles.splice(i, 1);
+    upBusy = false; upReach = null; upMsg = "";
+    $("up").hidden = true;
+    $("upBody").replaceChildren();
+  }
+  function upCtx() {                // the masked accounts and the Telegram bot's name, from the dashboard in the frame
+    try { const w = $("view").contentWindow; return (w && typeof w.phUpContext === "function" && w.phUpContext()) || {}; } catch (e) { return {}; }
+  }
+  function upTg(ctx) {
+    const bot = String((ctx || {}).bot || "").replace(/^@/, "");
+    return /^[A-Za-z0-9_]{3,64}$/.test(bot) ? el("a", { class: "go", id: "upTg", href: "https://t.me/" + bot, target: "_blank", rel: "noopener noreferrer" }, "Send via Telegram instead") : null;
+  }
+  function upAdd(files) {
+    let n = 0;
+    for (const f of files) {
+      if (upFiles.length >= UP_FILES) break;
+      const ext = (String(f.name || "").match(/\.[^.]+$/) || [""])[0].toLowerCase();
+      const it = { file: f, name: f.name || "file", size: f.size || 0, state: "ready", pct: 0 };
+      if (!UP_TYPES.includes(ext)) Object.assign(it, { state: "bad", kind: "failed", text: "Only PDF, CSV, Excel (xls / xlsx) or a picture (jpg / png / heic) can be sent." });
+      else if (!f.size) Object.assign(it, { state: "bad", kind: "failed", text: "The file is empty." });
+      else if (f.size > UP_MAX) Object.assign(it, { state: "bad", kind: "failed", text: "Larger than 20 MB - send it via Telegram or OneDrive instead." });
+      upFiles.push(it); n++;
+    }
+    return n;
+  }
+  function upPick(cam) {            // the phone's file picker / camera (the inputs live here, outside the dashboard frame)
+    const inp = $(cam ? "upCam" : "upPick");
+    picking = Date.now();
+    clearTimeout(pickTimer);
+    pickTimer = setTimeout(pickDone, 10 * 60 * 1000);
+    inp.value = "";
+    inp.click();
+  }
+  function pickDone() {
+    picking = 0; clearTimeout(pickTimer);
+    if (!key && dirty && !upFiles.length) relaunch(null, false);     // locked meanwhile and nothing chosen: start afresh
+  }
+  ["upPick", "upCam"].forEach((id) => {
+    $(id).addEventListener("change", (e) => {
+      const n = upAdd([...(e.target.files || [])]);
+      e.target.value = "";
+      pickDone();
+      if (!key) { if (n) note(`${upFiles.length} file${upFiles.length === 1 ? "" : "s"} chosen - unlock to send ${upFiles.length === 1 ? "it" : "them"} to your PC.`); return; }
+      upDraw();
+    });
+    $(id).addEventListener("cancel", pickDone);
+  });
+  // files shared to the app (Android share sheet) wait in the service worker's MEMORY only (templates/sw.js) - never in
+  // storage another page of the address could read; asked for by message: "share-count" (also keeps the worker awake
+  // while the app is locked), "share-take" once unlocked
+  function swAsk(type) {
+    return new Promise((res) => {
+      const c = "serviceWorker" in navigator && navigator.serviceWorker.controller;
+      if (!c) { res(null); return; }
+      const ch = new MessageChannel(), t = setTimeout(() => res(null), 4000);
+      ch.port1.onmessage = (e) => { clearTimeout(t); res(e.data || null); };
+      try { c.postMessage({ pfos: type }, [ch.port2]); } catch (e) { clearTimeout(t); res(null); }
+    });
+  }
+  async function shareCount() {
+    const r = await swAsk("share-count");
+    return r && r.n > 0 ? r.n : 0;
+  }
+  function shareKeepAwake() {       // (an idle worker is stopped after ~30 s: while files wait, the locked app asks every 10 s)
+    clearInterval(shareTimer);
+    shareTimer = setInterval(async () => { if (key || !shareWant || !(await shareCount())) clearInterval(shareTimer); }, 10000);
+  }
+  async function shareTake() {      // into the list - only once unlocked
+    if (!shareWant) return 0;
+    const r = await swAsk("share-take");
+    let n = 0;
+    for (const f of (r && Array.isArray(r.files) ? r.files : [])) if (f instanceof Blob) n += upAdd([f]);
+    if (!n) toast("The file(s) shared to the app were lost while it waited for Face ID / the passphrase (the phone stops the app's background worker) - please share again.", 10000);
+    shareWant = 0; clearInterval(shareTimer);
+    return n;
+  }
+  async function upResume() {       // after an unlock: files chosen while locked, or shared to the app, are offered at once
+    if (!UP_ON || !key) return;
+    const n = await shareTake();
+    if (key && (upFiles.length || n)) upOpen({});
+  }
+  function upOpen(o) {
+    if (!UP_ON || !key) return;
+    if (o && typeof o.account === "string") upAcct = o.account;
+    $("up").hidden = false;
+    upDraw();
+    if (dev && upReach === null && !upBusy) upPing();
+  }
+  $("upX").addEventListener("click", () => {
+    $("up").hidden = true;
+    if (!upBusy) for (let i = upFiles.length - 1; i >= 0; i--) if (["done", "bad"].includes(upFiles[i].state)) upFiles.splice(i, 1);
+  });
+  async function upFetch(path, opts = {}, ms = 15000, auth = true) {
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+    upReq.add(ctl);
+    try {
+      const headers = { ...(opts.headers || {}) };
+      if (auth) { if (!dev) return { ok: false, status: 401, j: {} }; headers["X-PFOS-Device"] = dev; }
+      const r = await fetch("https://" + PHONE_HOST + path, { ...opts, headers, signal: ctl.signal, cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer", mode: "cors" });
+      let j = {};
+      try { j = await r.json(); } catch (e) { j = {}; }
+      return { ok: r.ok && j.ok !== false, status: r.status, j };
+    } catch (e) { return { ok: false, status: 0, j: {} }; }
+    finally { clearTimeout(t); upReq.delete(ctl); }
+  }
+  function upGone(text) {           // the PC no longer knows this phone (revoked there): the wrapped token goes too
+    devDel(); dev = null; devRec = null; upMsg = text || "This phone is no longer connected to the PC (it was removed there) - connect it again.";
+  }
+  async function upPing() {
+    const gen = upGen, r = await upFetch("/api/m/status", {}, 8000);
+    if (gen !== upGen) return;
+    if (r.status === 401) upGone();
+    upReach = r.status === 0 ? false : r.ok ? true : null;
+    if (!r.ok && r.status && r.status !== 401) upMsg = r.j.text || `The PC refused (${r.status}).`;
+    upDraw();
+  }
+  function devName() {
+    const ua = navigator.userAgent || "", d = new Date().toISOString().slice(0, 10);
+    return (/iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ? "iPad" : /Android/.test(ua) ? "Android phone" : "Browser") + " " + d;
+  }
+  async function upPair(hostIn, codeIn, nameIn, btn) {
+    const host = String(hostIn || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/[/:].*$/, ""), code = String(codeIn || "").trim();
+    const say = (t) => { upMsg = t; upDraw(); };
+    if (host !== PHONE_HOST) { say(`This app can reach only the address set up on your PC (${PHONE_HOST}). If the PC's Tailscale name changed, run python -m pfos.cli phone-setup on the PC and open the app again after the next publish.`); return; }
+    if (!/^[a-z0-9]{4}[\s-]?[a-z0-9]{4}$/i.test(code)) { say("Type the 8-character code the PC shows (e.g. abcd-efgh)."); return; }
+    if (!devKey || !key) { say("Unlock the app first."); return; }
+    const my = epoch, gen = upGen, kk = devKey, salt = keySalt;
+    btn.disabled = true; upMsg = "Connecting…"; btn.textContent = "Connecting…";
+    const r = await upFetch("/api/m/pair", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, name: String(nameIn || "").slice(0, 40) }) }, 20000, false);
+    if (my !== epoch || gen !== upGen) return;
+    if (!r.ok) { upReach = r.status === 0 ? false : upReach; say(r.status === 0 ? "" : r.j.text || `Not connected (${r.status}).`); return; }
+    const token = r.j.token;
+    if (typeof token !== "string" || !/^pfd1_[A-Za-z0-9_-]{20,120}$/.test(token)) { say("The PC's answer was not understood - nothing saved."); return; }
+    const rec = { v: 1, host: PHONE_HOST, device: String(r.j.device || "Phone").slice(0, 60), keySalt: salt, at: new Date().toISOString() };
+    const iv = rand(12);
+    const wrapped = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: devAad(rec) }, kk, enc(token));
+    if (my !== epoch) return;
+    await devPut({ ...rec, iv: toB64(iv), wrapped: toB64(wrapped) });
+    const back = await devGet();
+    if (my !== epoch) return;
+    if (!back) { say("This phone's storage is blocked - the connection could not be kept. Nothing was saved."); return; }
+    dev = token; devRec = back; upReach = true; upMsg = "";
+    toast(`Connected to your PC as "${rec.device}".`);
+    upDraw();
+  }
+  function upXhr(it, gen) {         // one file (XMLHttpRequest: it reports the upload's progress)
+    return new Promise((resolve) => {
+      const x = new XMLHttpRequest();
+      upReq.add(x);
+      const done = (v) => { upReq.delete(x); resolve(v); };
+      x.open("POST", "https://" + PHONE_HOST + "/api/m/upload");
+      x.timeout = 180000;
+      x.setRequestHeader("Content-Type", "application/octet-stream");
+      x.setRequestHeader("X-PFOS-Device", dev);
+      x.setRequestHeader("X-PFOS-File-Name", encodeURIComponent(it.name));
+      if (upAcct) x.setRequestHeader("X-PFOS-Account", upAcct);
+      x.upload.onprogress = (e) => { if (e.lengthComputable && gen === upGen) { it.pct = Math.round(e.loaded / e.total * 100); if (it.bar) it.bar.style.width = it.pct + "%"; } };
+      x.onload = () => { let j = {}; try { j = JSON.parse(x.responseText || "{}"); } catch (e) { j = {}; } done({ status: x.status, j }); };
+      x.onerror = () => done({ status: 0, j: {} });
+      x.ontimeout = () => done({ status: 0, j: {} });
+      x.onabort = () => done({ status: -1, j: {} });
+      x.send(it.file);
+    });
+  }
+  async function upSendAll() {
+    if (upBusy || !dev) return;
+    const todo = upFiles.filter((f) => f.state === "ready");
+    if (!todo.length) return;
+    const gen = upGen;
+    upBusy = true; upMsg = ""; upReach = null; upDraw();
+    for (const it of todo) {
+      it.state = "sending"; it.pct = 0; it.text = "Sending…"; upDraw();
+      const r = await upXhr(it, gen);
+      if (gen !== upGen) return;
+      if (r.status === 200 && r.j.ok && r.j.upload_id) {
+        Object.assign(it, { state: "sent", id: String(r.j.upload_id), kind: "waiting", text: "Sent - waiting for the PC to pick it up" });
+        upReach = true;
+        upWatch(it, gen);
+      } else if (r.status === 0) { Object.assign(it, { state: "ready", text: "" }); upReach = false; break; }
+      else if (r.status === 401) { Object.assign(it, { state: "ready", text: "" }); upGone(r.j.text); break; }
+      else {
+        Object.assign(it, { state: "bad", kind: "failed", text: r.j.text || `Not sent (${r.status}).` });
+        if (r.status === 429 || r.status === 403) break;
+      }
+      upDraw();
+    }
+    upBusy = false; upDraw();
+  }
+  async function upWatch(it, gen) { // what became of a sent file: asked every UP_POLL_MS until the PC has filed it
+    const t0 = Date.now();
+    while (gen === upGen && Date.now() - t0 < 15 * 60 * 1000) {
+      await new Promise((r) => setTimeout(r, UP_POLL_MS));
+      if (gen !== upGen) return;
+      const r = await upFetch("/api/m/status?upload=" + encodeURIComponent(it.id), {}, 15000);
+      if (gen !== upGen) return;
+      if (r.status === 401) { upGone(); upDraw(); return; }
+      if (!r.ok) { it.text = r.status === 0 ? "Sent - the PC is not answering at the moment; still asking…" : (r.j.text || it.text); upDraw(); continue; }
+      const u = r.j.upload || {};
+      Object.assign(it, { kind: u.kind || "processing", text: u.text || "Being read on the PC", note: u.note || "", web: r.j.web || null });
+      if (u.state === "done") { it.state = "done"; upDraw(); return; }
+      upDraw();
+    }
+    if (gen === upGen && it.state !== "done") { it.text = "Still being processed - Telegram tells you the outcome; this app shows it after the next publish."; upDraw(); }
+  }
+  function upForget() {
+    const name = (devRec || {}).device || "this phone";
+    if (!confirm(`Disconnect this phone from your PC? This forgets the connection on this phone only - also run on the PC: python -m pfos.cli phone-revoke "${name}" (until then the PC still accepts this phone). You can connect again with a new code.`)) return;
+    devDel(); dev = null; devRec = null; upReach = null; upMsg = "";
+    toast(`Disconnected on this phone - also run phone-revoke on the PC: python -m pfos.cli phone-revoke "${name}"`, 10000);
+    upDraw();
+  }
+  function upDraw() {
+    if (!UP_ON || $("up").hidden) return;
+    const ctx = upCtx(), kids = [];
+    const line = upMsg ? el("div", { class: "msg", role: "alert" }, upMsg) : null;
+    const away = upReach === false ? el("div", { class: "up-box", role: "alert", id: "upAway" },
+      el("b", {}, "Your PC can't be reached."), " Check that the PC is on and awake, and that Tailscale is switched on - on the PC and on this phone (signed in to the same account). Then try again.",
+      el("button", { class: "ghost", type: "button", style: "width:100%;margin-top:10px", onclick: () => { upReach = null; upMsg = ""; upDraw(); upPing(); } }, "Try again"),
+      upTg(ctx)) : null;
+    if (!PHONE_HOST) {
+      kids.push(el("p", {}, "Uploading from this phone is not set up on your PC yet. On the PC run python -m pfos.cli phone-setup (Control Panel › 19); after the next publish this app can send statements to it over Tailscale."), upTg(ctx));
+    } else if (!dev) {
+      const hostIn = el("input", { type: "text", id: "upHost", value: PHONE_HOST, autocapitalize: "none", autocorrect: "off", spellcheck: "false", inputmode: "url", "aria-label": "PC address" });
+      const codeIn = el("input", { type: "text", id: "upCode", autocapitalize: "none", autocorrect: "off", spellcheck: "false", autocomplete: "one-time-code", placeholder: "abcd-efgh", "aria-label": "Pairing code" });
+      const nameIn = el("input", { type: "text", id: "upName", value: devName(), maxlength: "40", "aria-label": "Name of this phone" });
+      const go = el("button", { class: "go", type: "button", id: "upConnect" }, "Connect");
+      go.addEventListener("click", () => upPair(hostIn.value, codeIn.value, nameIn.value, go));
+      kids.push(el("p", {}, el("b", {}, "Connect to my PC"), " - once per phone. On the PC run python -m pfos.cli phone-pair (Control Panel › 19): it shows a code that works once, for 10 minutes. Tailscale must be on, on the PC and on this phone."),
+        el("label", { class: "f", for: "upHost" }, "PC address (Tailscale)"), hostIn,
+        el("label", { class: "f", for: "upCode" }, "Pairing code"), codeIn,
+        el("label", { class: "f", for: "upName" }, "Name of this phone (shown on the PC)"), nameIn, go, line, away);
+    } else {
+      const ready = upFiles.filter((f) => f.state === "ready").length;
+      const accts = (ctx.accounts || []).filter((a) => a && typeof a.ref === "string");
+      const sel = accts.length ? el("select", { id: "upAcct", "aria-label": "Account", onchange: (e) => { upAcct = e.target.value; } },
+        el("option", { value: "" }, "Any - read from the document"),
+        accts.map((a) => { const o = el("option", { value: a.ref }, upMask(a.label)); if (a.ref === upAcct) o.selected = true; return o; })) : null;
+      const list = upFiles.length ? el("ul", { class: "up-list", id: "upList" }, upFiles.map((it) => {
+        const icon = { processed: "✓ ", duplicate: "✓ ", test: "✓ ", failed: "✕ " }[it.kind] || (["review", "not_mine", "locked", "kept_out", "not_statement"].includes(it.kind) ? "⚠ " : "");
+        const cls = "s" + (["processed", "duplicate", "test"].includes(it.kind) ? " ok" : it.kind === "failed" || it.state === "bad" ? " bad" : "");
+        const li = el("li", { "data-state": it.state, "data-kind": it.kind || "" }, el("div", { class: "n" }, upMask(it.name), el("span", { class: "s" }, " · " + upSize(it.size))),
+          it.state === "ready" ? el("div", { class: "s" }, "Ready to send") : null,
+          it.text ? el("div", { class: cls }, icon + it.text) : null,
+          it.note ? el("div", { class: "s" }, upMask(it.note)) : null);
+        if (it.state === "sending") { it.bar = el("i", { style: `width:${it.pct || 0}%` }); li.append(el("div", { class: "up-bar" }, it.bar)); } else it.bar = null;
+        return li;
+      })) : null;
+      const sent = upFiles.filter((f) => f.id), done = sent.length && sent.every((f) => f.state === "done");
+      kids.push(
+        el("p", { class: "note", id: "upTo" }, upReach === true ? `Connected to your PC as "${(devRec || {}).device || "this phone"}" - over Tailscale.` : `To your PC over Tailscale (${PHONE_HOST}).`),
+        el("div", { class: "up-row" },
+          el("button", { class: "ghost", type: "button", id: "upChoose", disabled: upBusy, onclick: () => upPick(false) }, "Choose files"),
+          el("button", { class: "ghost", type: "button", id: "upPhoto", disabled: upBusy, onclick: () => upPick(true) }, "Take a photo")),
+        sel ? [el("label", { class: "f", for: "upAcct" }, "For account (optional)"), sel] : null,
+        list,
+        el("button", { class: "go", type: "button", id: "upSend", disabled: !ready || upBusy, onclick: upSendAll }, upBusy ? "Sending…" : ready ? `Send ${ready} file${ready === 1 ? "" : "s"}` : "Send"),
+        line, away,
+        done ? el("div", { class: "up-box", id: "upDone" }, "Done. The Command Center on your PC is updated now; this app shows it after the next publish of the web copy - usually within a few minutes.") : null,
+        el("div", { class: "small" }, "PDF, CSV, Excel or a picture (jpg / png / heic), up to 20 MB each. The PC decides from the document itself whose account it is."),
+        el("button", { class: "link", type: "button", id: "upForget", onclick: upForget }, "Disconnect this phone (also run phone-revoke on the PC)"));
+    }
+    $("upBody").replaceChildren(...kids.flat().filter(Boolean));
+  }
+  // the dashboard in the frame opens the sheet ("Upload statement" on Today, More and the account register)
+  if (UP_ON) window.pfosPhone = Object.freeze({ open: (o) => upOpen(o || {}), set: () => !!PHONE_HOST, connected: () => !!dev });
+
+  /* ---------------------------------------------------------------- start */
+  function registerWorker() {       // the installable app: shell, icons and the ENCRYPTED copy kept for offline use (sw.js)
+    try {
+      if (window.isSecureContext && "serviceWorker" in navigator)
+        navigator.serviceWorker.register("sw.js", { scope: "./", updateViaCache: "none" }).catch(() => { /* works online only */ });
+    } catch (e) { /* works online only */ }
+  }
+  async function start() {
+    if (!window.crypto || !crypto.subtle || typeof DecompressionStream === "undefined") {
+      off("This browser is too old to open the encrypted dashboard. Please update it (Chrome, Safari 16.4+, Edge or Firefox).");
+      return;
+    }
+    registerWorker();
+    let quiet = false;
+    try {
+      const t = sessionStorage.getItem("pfos.note." + VIEW);
+      if (t) { note(t); sessionStorage.removeItem("pfos.note." + VIEW); }
+      quiet = sessionStorage.getItem("pfos.quiet." + VIEW) === "1";
+      sessionStorage.removeItem("pfos.quiet." + VIEW);
+    } catch (e) { /* none */ }
+    if (await dropRemembered())
+      note("This device no longer opens the dashboard without a check: type the passphrase once, then turn on Face ID / fingerprint.");
+    try { payload = await fetchPayload(); } catch (e) { msg(errText(e)); await gateMode(); return; }
+    if (payload.off) { await forgetPk(); off("Sharing is switched off at the moment."); return; }
+    if (stale(payload)) return;
+    if (UP_ON) {                    // statements shared to the app (Android share sheet): sent once it is unlocked
+      const sent = +((/[?&]share=(\d+)/.exec(location.search) || [])[1] || 0);
+      if (/[?&]share=/.test(location.search)) { try { history.replaceState(null, "", location.pathname); } catch (e) { /* stays */ } }
+      const n = sent ? await shareCount() : 0;
+      if (n) { shareWant = n; shareKeepAwake(); note(`${n} file${n === 1 ? "" : "s"} shared to the app - unlock to send ${n === 1 ? "it" : "them"} to your PC.`); }
+      else if (sent) note("The file shared to the app did not arrive (the phone stopped the app's background worker) - please share it again.");
+    }
+    const rec = await pkGet();
+    if (rec && rec.keySalt !== payload.salt) await forgetPk("The passphrase was changed on the PC - type the new one, then turn on Face ID / fingerprint again.");
+    await gateMode();
+    if (mode === "pk") { if (!quiet) autoPk(); } else $("pw").focus();
+  }
+  start();
+})();
+</script>
+</body>
+</html>
